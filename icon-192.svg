@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="32" fill="#111"/>
+  <rect x="40" y="50" width="112" height="92" rx="4" fill="#4a8c3f"/>
+  <rect x="76" y="68" width="40" height="44" rx="2" fill="#4488ff"/>
+  <rect x="84" y="60" width="24" height="20" rx="2" fill="#ffccaa"/>
+  <rect x="88" y="66" width="5" height="5" fill="#000"/>
+  <rect x="99" y="66" width="5" height="5" fill="#000"/>
+  <text x="96" y="170" text-anchor="middle" fill="#fff" font-family="monospace" font-size="24" font-weight="bold">RPG</text>
+</svg>

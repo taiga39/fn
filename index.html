@@ -2,8 +2,21 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>2D RPG Mock</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#111111">
+
+<!-- iOS standalone mode -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RPG">
+
+<!-- icon (fallback) -->
+<link rel="apple-touch-icon" href="icon-192.svg">
+
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -21,11 +34,130 @@ body {
   width: 100vw;
   height: 100vh;
 }
+
+/* --- A2HS (Add to Home Screen) Banner --- */
+#a2hs-banner {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.85));
+  color: #fff;
+  padding: 16px 20px;
+  z-index: 9999;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  text-align: center;
+  border-top: 1px solid #333;
+  animation: slideUp 0.3s ease-out;
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+#a2hs-banner .a2hs-title {
+  font-size: 15px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+#a2hs-banner .a2hs-steps {
+  font-size: 13px;
+  color: #ccc;
+  line-height: 1.6;
+}
+#a2hs-banner .a2hs-steps .icon {
+  display: inline-block;
+  font-size: 18px;
+  vertical-align: middle;
+}
+#a2hs-banner .a2hs-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
 </style>
 </head>
 <body>
 <div id="game-container"></div>
+
+<!-- A2HS Banner -->
+<div id="a2hs-banner">
+  <button class="a2hs-close" id="a2hs-close">&times;</button>
+  <div class="a2hs-title">フルスクリーンで遊ぼう！</div>
+  <div class="a2hs-steps" id="a2hs-steps"></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
 <script src="game.js"></script>
+<script>
+// ============================================================
+// A2HS (Add to Home Screen) prompt
+// ============================================================
+(function() {
+  // Already running as PWA standalone
+  const isStandalone = window.navigator.standalone === true
+    || window.matchMedia("(display-mode: standalone)").matches
+    || window.matchMedia("(display-mode: fullscreen)").matches;
+  if (isStandalone) return;
+
+  // Check if user dismissed before (remember for 7 days)
+  const DISMISSED_KEY = "a2hs_dismissed";
+  const dismissed = localStorage.getItem(DISMISSED_KEY);
+  if (dismissed && Date.now() - parseInt(dismissed) < 7 * 24 * 60 * 60 * 1000) return;
+
+  const banner = document.getElementById("a2hs-banner");
+  const stepsEl = document.getElementById("a2hs-steps");
+  const closeBtn = document.getElementById("a2hs-close");
+
+  // --- Android: intercept beforeinstallprompt ---
+  let deferredPrompt = null;
+  window.addEventListener("beforeinstallprompt", function(e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    stepsEl.innerHTML = 'タップしてホーム画面に追加 ↓<br><button id="a2hs-install" style="margin-top:10px;padding:10px 28px;font-size:15px;font-weight:bold;border:none;border-radius:8px;background:#4488ff;color:#fff;cursor:pointer;">ホーム画面に追加</button>';
+    banner.style.display = "block";
+    document.getElementById("a2hs-install").addEventListener("click", function() {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function() { banner.style.display = "none"; });
+    });
+  });
+
+  // --- iOS Safari: show manual instructions ---
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const isSafari = /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(navigator.userAgent);
+
+  if (isIOS) {
+    stepsEl.innerHTML =
+      '<span class="icon">⬆️</span> 下の共有ボタンをタップ →<br>' +
+      '「<strong>ホーム画面に追加</strong>」を選択<br>' +
+      '<span style="font-size:11px;color:#999;margin-top:4px;display:inline-block;">フルスクリーンで起動できます</span>';
+    // Show after a short delay
+    setTimeout(function() { banner.style.display = "block"; }, 1500);
+  }
+
+  // --- Other mobile browsers without beforeinstallprompt ---
+  // Show after 3s if neither iOS nor Android prompt fired
+  setTimeout(function() {
+    if (!isIOS && !deferredPrompt && /Android|Mobile/.test(navigator.userAgent)) {
+      stepsEl.innerHTML =
+        'ブラウザメニュー → 「<strong>ホーム画面に追加</strong>」<br>' +
+        '<span style="font-size:11px;color:#999;">フルスクリーンで起動できます</span>';
+      banner.style.display = "block";
+    }
+  }, 3000);
+
+  // Close button
+  closeBtn.addEventListener("click", function() {
+    banner.style.display = "none";
+    localStorage.setItem(DISMISSED_KEY, Date.now().toString());
+  });
+})();
+</script>
 </body>
 </html>
